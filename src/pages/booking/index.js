@@ -1,14 +1,5 @@
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-// import fa from 'date-fns/locale/'
-import dayjs from "dayjs";
-import { enUS, faIR } from "@mui/x-date-pickers/locales";
-import { AdapterMomentJalaali } from "@mui/x-date-pickers/AdapterMomentJalaali";
-import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import { AdapterDateFnsJalali } from "@mui/x-date-pickers/AdapterDateFnsJalali";
-import faJalaliIR from "date-fns-jalali/locale/fa-jalali-IR";
-import { compareAsc, format, newDate } from "date-fns";
-import { TimeField } from "@mui/x-date-pickers/TimeField";
+import {LocalizationProvider} from "@mui/x-date-pickers/LocalizationProvider";
+import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -16,34 +7,37 @@ import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import BookTime from "@/components/BookTime";
 import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
-import Map from "../../components/Map";
 import Carousel from "react-material-ui-carousel";
-import { Alert, Grid, Paper, Snackbar, Typography } from "@mui/material";
-import { AlarmOn } from "@mui/icons-material";
-const faLocale =
-  faIR.components.MuiLocalizationProvider.defaultProps.localeText;
-
+import Alert from "@mui/material/Alert";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Snackbar from "@mui/material/Snackbar";
+import Typography from "@mui/material/Typography";
+import AlarmOn from "@mui/icons-material/AlarmOn";
+import LocalPhone from "@mui/icons-material/LocalPhone";
+import AlternateEmail from '@mui/icons-material/AlternateEmail';
+import axios from "axios";
 export default function Booking() {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [from, setFrom] = useState(null);
-  const [until, setUntil] = useState(null);
-  const [index, setIndex] = useState(null);
-  const [fullName, setFullName] = useState(null);
-  const [address, setAddress] = useState(null);
-  const [inputs, setInputs] = useState(false);
   const [openSnackBar, setOpenSnackBar] = useState(false);
+  const [contactName, setContactName] = useState(null);
+  const [contactEmail, setContactEmail] = useState(null);
+  const [contactMessage, setContactMessage] = useState(null);
+  const [message, setMessage] = useState(null);
   const [images, setImages] = useState([
-    <img src="https://thumbs.dreamstime.com/z/plumber-work-bathroom-plumbing-repair-service-assemble-install-concept-plumber-work-bathroom-plumbing-repair-113995223.jpg" />,
-    <img src="https://thumbs.dreamstime.com/z/plumbing-plumber-his-work-toilet-45758903.jpg" />,
+    {
+      src: "/1.jpg"
+    },
+    {
+      src: "/2.jpg"
+    },
   ]);
   const [quotes, setQuotes] = useState([
     {
       id: 1,
       nickname: "Milad Hazrati",
-      body: "But web browsers aren’t like web servers. If your back-end code is getting so big that it’s starting to run noticably slowly, you can throw more computing"
-    }
-  ])
+      body: "But web browsers aren’t like web servers. If your back-end code is getting so big that it’s starting to run noticably slowly, you can throw more computing",
+    },
+  ]);
   const [availableTimes, setAvailableTimes] = useState([
     {
       id: 1,
@@ -58,147 +52,19 @@ export default function Booking() {
       until: new Date(2023, 4, 8, 10, 0, 0),
     },
   ]);
-  const [bookedList, setBookedList] = useState([
-    {
-      id: 1,
-      bookedTime: 1,
-      fullName: "Steve 1",
-      address: "United 1",
-    },
-    {
-      id: 2,
-      bookedTime: 2,
-      fullName: "Steve 2",
-      address: "United 2",
-    },
-    {
-      id: 3,
-      bookedTime: 1,
-      fullName: "Steve 3",
-      address: "United 3",
-    },
-    {
-      id: 4,
-      bookedTime: 2,
-      fullName: "Steve 4",
-      address: "United 4",
-    },
-    {
-      id: 5,
-      bookedTime: 2,
-      fullName: "Steve 5",
-      address: "United 5",
-    },
-  ]);
-  const [times, setTimes] = useState([]);
-  const handleBookButton = (id) => {
-    let a = bookedList.filter((booked) => booked.bookedTime == id);
-    let b = availableTimes.find((times) => times.id == id);
-    if (a.length >= b.maxClient) {
-      alert("max client exceeds");
-      return false;
-    } else {
-      setIndex(id);
-      setInputs(true);
-    }
-  };
-  const handleBook = () => {
-    let a = bookedList.filter((booked) => booked.bookedTime == index);
-    let b = availableTimes.find((times) => times.id == index);
-    if (a.length >= b.maxClient) {
-      alert("max client exceeds");
-      return false;
-    } else {
-      const newClient = {
-        bookedTime: index,
-        fullName,
-        address,
-      };
-      setBookedList((prev) => [...prev, newClient]);
-    }
-  };
-  const handleClick = () => {
-    if (!from || !until) {
-      alert("from or until is empty");
-      return false;
-    } else if (from.getTime() >= until.getTime()) {
-      alert("from is bigger than until");
-      return false;
-    }
-    let a = availableTimes.filter((times) => {
-      // console.log("from", from);
-      // console.log("times.from", times.from);
-      // console.log("until", until);
-      // console.log("times.until", times.until);
-      // console.log(from.getTime() > times.from.getTime(), from.getTime() < times.until.getTime(), until.getTime() > times.from.getTime(), until.getTime() < times.until.getTime());
-      if (
-        from.getTime() >= times.from.getTime() &&
-        from.getTime() < times.until.getTime()
-      ) {
-        return true;
-      } else if (
-        until.getTime() > times.from.getTime() &&
-        until.getTime() <= times.until.getTime()
-      ) {
-        return true;
-      }
-      return false;
+  const handleContact = () => {
+    axios.post("/api/contact", {
+      nickname: contactName,
+      email: contactEmail,
+      message: contactMessage
+    }).then(res => {
+      setMessage({message: res?.data.message, severity: "success"})
+      setOpenSnackBar(true);
+    }).catch(err=> {
+      setMessage({message: err?.response?.data?.message, severity: "error"})
+      setOpenSnackBar(true);
     });
-    console.log("a", a);
-    if (a.length) {
-      alert("overlapping");
-      return false;
-    }
-
-    setAvailableTimes((items) => [
-      ...items,
-      {
-        from: new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
-          selectedDate.getDate(),
-          from.getHours(),
-          from.getMinutes(),
-          0
-        ),
-        until: new Date(
-          selectedDate.getFullYear(),
-          selectedDate.getMonth(),
-          selectedDate.getDate(),
-          until.getHours(),
-          until.getMinutes(),
-          0
-        ),
-      },
-    ]);
-  };
-  const getTimes = (value) => {
-    setSelectedDate(value);
-    let startDate = new Date(
-      value.getFullYear(),
-      value.getMonth(),
-      value.getDate(),
-      0,
-      0,
-      0
-    ).getTime();
-    let endDate = new Date(
-      value.getFullYear(),
-      value.getMonth(),
-      value.getDate(),
-      23,
-      59,
-      0
-    ).getTime();
-    let a = availableTimes.filter((times) => {
-      return (
-        (times.from.getTime() > startDate || times.from.getTime() < endDate) &&
-        times.until.getTime() > startDate &&
-        times.until.getTime() < endDate
-      );
-    });
-    setTimes((times) => [...a]);
-  };
+  }
 
   const handleCloseSnackBar = (e, reason) => {
     if (reason === "clickaway") {
@@ -208,9 +74,6 @@ export default function Booking() {
     setOpenSnackBar(false);
   };
 
-  useEffect(() => {
-    getTimes(new Date());
-  }, []);
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Snackbar
@@ -221,10 +84,10 @@ export default function Booking() {
       >
         <Alert
           onClose={handleCloseSnackBar}
-          severity="success"
+          severity={message?.severity}
           sx={{ width: "100%" }}
         >
-          Your appointment is successfully booked. I will be there ;)
+          {message?.message}
         </Alert>
       </Snackbar>
       <CssBaseline />
@@ -246,7 +109,7 @@ export default function Booking() {
                   gutterBottom
                   sx={{ fontWeight: "bold" }}
                 >
-                  Plumbing
+                  Welcome to Milad Plumbing's
                 </Typography>
               </Grid>
               <Grid item xs={6} textAlign={"right"}>
@@ -266,14 +129,10 @@ export default function Booking() {
             >
               <Grid item xs={12} sx={{ height: "40vh" }}>
                 <Carousel sx={{ height: "100%" }}>
-                  {images.map((item) => item)}
+                  {images.map((item, index) => <img key={index} src={item.src}/>)}
                 </Carousel>
               </Grid>
-              <Grid
-                item
-                xs={12}
-                sx={{ height: "auto", padding: "10px 5px" }}
-              >
+              <Grid item xs={12} sx={{ height: "auto", padding: "10px 5px" }}>
                 <Grid
                   container
                   rowSpacing={1}
@@ -368,7 +227,7 @@ export default function Booking() {
                 </Grid>
               </Grid>
             </Grid>
-            <Typography textAlign={"center"} variant="h6" fontWeight={"bolder"}>
+            <Typography textAlign={"center"} variant="h6" fontWeight={"bolder"} my={"40px"}>
               Book Your Time In One Minute!
             </Typography>
 
@@ -388,9 +247,13 @@ export default function Booking() {
                 }}
               >
                 <BookTime
-                  onChange={(booked) => {
+                  onSuccess={(booked) => {
+                    setMessage(booked)
                     setOpenSnackBar(true);
-                    setBookedList(booked);
+                  }}
+                  onError={(booked) => {
+                    setMessage(booked);
+                    setOpenSnackBar(true)
                   }}
                 />
               </Grid>
@@ -399,7 +262,7 @@ export default function Booking() {
                 item
                 xs={12}
                 sm={6}
-                sx={{ height: "auto", padding: "10px 5px" }}
+                sx={{ height: "auto", padding: "10px 30px" }}
               >
                 <Typography
                   textAlign={"center"}
@@ -497,27 +360,94 @@ export default function Booking() {
                 </Grid>
               </Grid>
             </Grid>
-            <Typography variant={"h6"} textAlign={"center"} fontWeight={"bolder"}>Customers' Saying</Typography>
+            <Typography
+              variant={"h6"}
+              textAlign={"center"}
+              fontWeight={"bolder"}
+              my={"30px"}
+            >
+              Customers' Saying
+            </Typography>
             <Grid
               container
               rowSpacing={1}
               columnSpacing={{ xs: 1, sm: 2, md: 3 }}
             >
-              <Grid item xs={12} sx={{ height: "40vh" }}>
-                <Carousel sx={{ height: "100%", margin: "10px 80px" }}>
+              <Grid item xs={12} sx={{ height: "auto" }}>
+                <Carousel sx={{ height: "100%" }}>
                   {quotes.map((item) => (
-                    <div key={item.id}>
-                      <figure class="quote">
-                        <blockquote>
-                          {item.body}
-                        </blockquote>
-                        <figcaption>
-                          &mdash; {item.nickname}
-                        </figcaption>
+                    <div key={item.id} style={{ margin: "10px 80px" }}>
+                      <figure className="quote">
+                        <blockquote>{item.body}</blockquote>
+                        <figcaption>&mdash; {item.nickname}</figcaption>
                       </figure>
                     </div>
                   ))}
                 </Carousel>
+              </Grid>
+            </Grid>
+            <Grid
+              container
+              rowSpacing={1}
+              columnSpacing={{ xs: 1, sm: 2, md: 3 }}
+            >
+              <Grid item xs={5}>
+                <Paper
+                  elevation={3}
+                  sx={{ margin: "50px 0 50px 50px", padding: "50px" }}
+                >
+                  <Typography variant={"h6"} textAlign={"center"} fontWeight={"bolder"} mb={"30px"}>Contact Details</Typography>
+                  <Typography variany={"body1"} sx={{display:"flex", flexWrap: "wrap", alignItems:"center", justifyContent: "baseline"}} my={"10px"}><LocalPhone/>&nbsp; <b>Tel:</b> 123456789</Typography>
+                  <Typography variany={"body1"} sx={{display:"flex", flexWrap: "wrap", alignItems:"center", justifyContent: "baseline"}}>
+                    <AlternateEmail/>&nbsp; <b>Email:</b> miladhazrati75@gmail.com
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={7}>
+                <Paper elevation={3} sx={{ margin: "50px", padding: "50px" }}>
+                  <Typography variant={"h6"} textAlign={"center"} fontWeight={"bolder"} mb={"30px"}>Contact Me</Typography>
+                  <Grid
+                    container
+                    rowSpacing={1}
+                    columnSpacing={{ xs: 1, sm: 2, md: 3 }}
+                  >
+                    <Grid item xs={12}>
+                      <TextField
+                        value={contactName}
+                        id="outlined-basic"
+                        label="Your NickName"
+                        variant="outlined"
+                        fullWidth
+                        onChange={(e) => setContactName(e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        value={contactEmail}
+                        id="outlined-basic"
+                        label="Your Email"
+                        variant="outlined"
+                        fullWidth
+                        onChange={(e) => setContactEmail(e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        value={contactMessage}
+                        id="outlined-basic"
+                        label="Your Message"
+                        variant="outlined"
+                        multiline
+                        rows={4}
+                        fullWidth
+                        onChange={(e) => setContactMessage(e.target.value)}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Button variant="contained" onClick={() => handleContact()}>Send</Button>
+                    </Grid>
+                  </Grid>
+                </Paper>
               </Grid>
             </Grid>
             <Grid
@@ -533,17 +463,13 @@ export default function Booking() {
                   height: "5vh",
                   width: "100%",
                   backgroundColor: "darkblue",
+                  color: "wheat",
                   position: "absolute",
                   bottom: 0,
                 }}
                 textAlign={"center"}
               >
-                <Typography variant="body1">
-                  <a href="tel:0123456789">0123456789</a> |{" "}
-                  <a href="mailto:miladhazrati75@gmail.com">
-                    miladhazrati75@gmail.com
-                  </a>
-                </Typography>
+                <Typography variant="body1">With Love By Milad</Typography>
               </Grid>
             </Grid>
           </Paper>

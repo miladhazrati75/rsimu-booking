@@ -12,7 +12,6 @@ const LocationMarker = ()  =>{
 
     useEffect(() => {
       map.locate().on("locationfound", function (e) {
-        console.log(e.latlng);
         setPosition(e.latlng);
         map.flyTo(e.latlng, map.getZoom());
         const radius = e.accuracy;

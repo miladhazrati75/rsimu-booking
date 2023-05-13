@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
@@ -7,28 +7,14 @@ import StepContent from '@mui/material/StepContent';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-// import fa from 'date-fns/locale/'
-import dayjs from 'dayjs';
-import { enUS, faIR } from '@mui/x-date-pickers/locales';
-import { AdapterMomentJalaali } from '@mui/x-date-pickers/AdapterMomentJalaali';
-import { AdapterDateFnsJalali } from '@mui/x-date-pickers/AdapterDateFnsJalali';
-import faJalaliIR from 'date-fns-jalali/locale/fa-jalali-IR';
-import { compareAsc, format, newDate } from 'date-fns'
-import { TimeField } from '@mui/x-date-pickers/TimeField';
+import {DateCalendar} from '@mui/x-date-pickers/DateCalendar';
+import {LocalizationProvider} from '@mui/x-date-pickers/LocalizationProvider';
+import {AdapterDateFns} from '@mui/x-date-pickers/AdapterDateFns';
+import compareAsc from 'date-fns/compareAsc'
+import {format} from 'date-fns'
+import {TimeField} from '@mui/x-date-pickers/TimeField';
 import TextField from '@mui/material/TextField';
-import CssBaseline from '@mui/material/CssBaseline';
-import Container from '@mui/material/Container';
-import FormGroup from '@mui/material/FormGroup';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-// import { MapContainer } from 'react-leaflet/MapContainer'
-// import { TileLayer } from 'react-leaflet/TileLayer'
-// import { useMap } from 'react-leaflet/hooks'
-import Map from './Map'
-import dynamic from 'next/dynamic';
+import axios from 'axios'
 const steps = [
   {
     label: 'Select campaign settings',
@@ -50,7 +36,7 @@ const steps = [
   },
 ];
 
-export default function BookTime({onChange}) {
+export default function BookTime({onSuccess, onError}) {
 
   const [activeStep, setActiveStep] = useState(0);
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -65,52 +51,8 @@ export default function BookTime({onChange}) {
   const [mapContainer, setMapContainer] = useState(false);
   const [problem, setProblem] = useState(null);
   const [email, setEmail] = useState(null)
-  const [availableTimes, setAvailableTimes] = useState([
-      {
-          id: 1,
-          maxClient: 3,
-          from: new Date(2023, 4, 6, 8, 0, 0),
-          until: new Date(2023, 4, 6, 10, 0, 0)
-      },
-      {
-          id: 2,
-          maxClient: 3,
-          from: new Date(2023, 4, 8, 8, 0, 0),
-          until: new Date(2023, 4, 8, 10, 0, 0)
-      }
-  ])
-  const [bookedList, setBookedList] = useState([
-      {
-          id: 1,
-          bookedTime: 1,
-          fullName: "Steve 1",
-          address: "United 1"
-      },
-      {
-          id: 2,
-          bookedTime: 2,
-          fullName: "Steve 2",
-          address: "United 2"
-      },
-      {
-          id: 3,
-          bookedTime: 1,
-          fullName: "Steve 3",
-          address: "United 3"
-      },
-      {
-          id: 4,
-          bookedTime: 2,
-          fullName: "Steve 4",
-          address: "United 4"
-      },
-      {
-          id: 5,
-          bookedTime: 2,
-          fullName: "Steve 5",
-          address: "United 5"
-      }
-  ])
+  const [availableTimes, setAvailableTimes] = useState([])
+  const [bookedList, setBookedList] = useState([])
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -137,7 +79,10 @@ export default function BookTime({onChange}) {
   const handleBook = () => {
     let a = bookedList.filter(booked => booked.bookedTime == index);
     let b = availableTimes.find(times => times.id == index);
-    console.log("wwwww");
+    if(!fullName || !email || !phone || !address || !problem){
+      alert("empty fields");
+      return false;
+    }
     if (a.length >= b.maxClient){
         alert("max client exceeds");
         return false;
@@ -150,27 +95,30 @@ export default function BookTime({onChange}) {
             address,
             problem
         }
-        onChange([...bookedList, newClient]);
-        setBookedList(prev => [...prev, newClient])
-        setFullName(null);
-        setEmail(null);
-        setPhone(null);
-        setAddress(null);
-        setProblem(null)
+        axios.post("/api/settimes", newClient)
+        .then(res => {
+          onSuccess({ message: res.data?.message, severity: "success"})
+        })
+        .catch(err => onError({message: err?.response?.data?.message, severity: "error"}))
     }
     
   }
   const getTimes = (value) => {
-    console.log(value);
-    setSelectedDate(value)
-    let startDate = new Date(value.getFullYear(),value.getMonth(), value.getDate(), 0, 0, 0).getTime();
-    let endDate = new Date(value.getFullYear(),value.getMonth(), value.getDate(), 23, 59, 0).getTime();
-    let a = availableTimes.filter(times => {
-        return (times.from.getTime() > startDate || times.from.getTime() < endDate) && (times.until.getTime() > startDate && times.until.getTime() < endDate)
+    setSelectedDate(value);
+    axios.post("/api/freetimes", { 
+      perDate: true,
+      freeTime: value.getTime()
+    })
+    .then(res => {
+      setAvailableTimes(res.data);
+    })
+    .catch(err => {
+      setAvailableTimes([])
     });
-    setTimes(times => [...a]);
-
   }
+  useEffect(() => {
+    getTimes(new Date())
+  }, [])
   return (
     <Box sx={{ maxWidth: 400 }}>
       <Stepper activeStep={activeStep} orientation="vertical">
@@ -197,13 +145,17 @@ export default function BookTime({onChange}) {
           </StepLabel>
           <StepContent>
             <div>
-              <h2>Times to reserve in {format(selectedDate, "yyyy/MM/dd")}:</h2>
-              {times.map((item,index)=>(
-                  <>
-                      <p key={index} style={{padding: 20, border: "5px dashed grey", backgroundColor: "#ff8800", cursor: "pointer"}} onClick={() => handleBookButton(item.id)}>From: {format(item.from,"HH:mm")} - Until: {format(item.until, "HH:mm")}</p>
+              {availableTimes.length > 0 ? (<>
+                <Typography variant={"body1"} fontWeight={"bolder"}>Times to reserve in {format(selectedDate, "yyyy/MM/dd")}:</Typography>
+                {availableTimes.map((item,index)=>(<>
+                        <p key={index} style={{padding: 20, border: "5px dashed grey", backgroundColor: "#ff8800", cursor: "pointer"}} onClick={() => handleBookButton(item.id)}>From: {format(new Date(item.from),"HH:mm")} - Until: {format(new Date(item.until), "HH:mm")}</p>
+                  </>
+                ))}
                 </>
-              ))}
-              <Button variant="contained" onClick={() => handleBack()}>Back</Button>
+              ): (
+                <Typography mb={"20px"}>There's no available time on this day. Click on Back and select another day.</Typography>
+              )}
+              <Button variant="contained" onClick={handleBack} sx={{marginTop: "10px"}}>Back</Button>
             </div>
           </StepContent>
         </Step>
@@ -234,18 +186,20 @@ export default function BookTime({onChange}) {
               <div>
                 <TextField id="outlined-basic" label="How can I help you?" variant="outlined" onChange={(e) => setProblem(e.target.value)} />
               </div>
-              <div>
+              <div style={{ display: "flex", justifyContent: "center"}}>
                 <Button variant="contained" onClick={handleNext}>Next</Button>
               </div>
+              <div style={{ display: "flex", justifyContent: "center"}}>
+                <Button variant="contained" onClick={handleBack} sx={{marginTop: "10px"}}>Back</Button>
+              </div>
             </Box>
-            <Button variant="contained" onClick={() => handleBack()}>Back</Button>
           </StepContent>
         </Step>
         <Step>
           <StepLabel
             optional={<Typography variant="caption">Your accurate address</Typography>}
           >
-            Fill in the field or click on map
+            Give your address
           </StepLabel>
           <StepContent>
             <Box
@@ -266,7 +220,7 @@ export default function BookTime({onChange}) {
               </div>
               {mapContainer && <div><Map text="text"/></div>} */}
               <div>
-                <Button variant="contained" onClick={handleBook}>Contained</Button>
+                <Button variant="contained" onClick={handleBook}>Book</Button>
               </div>
             </Box>
             <Button variant="contained" onClick={() => handleBack()}>Back</Button>
